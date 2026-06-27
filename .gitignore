@@ -1,0 +1,7 @@
+# environment files
+.env
+.env.*
+
+# uploaded files
+uploads/
+backend/uploads/
