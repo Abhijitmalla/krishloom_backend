@@ -6,10 +6,13 @@ header("Content-Type: application/json");
 
 require_once __DIR__ . '/../controllers/AuthController.php';
 require_once __DIR__ . '/../controllers/AffiliateController.php';
+require_once __DIR__ . '/../controllers/AdminController.php';
 
 
 $auth = new AuthController();
-$affiliate = new AffiliateController(); // Create object
+$affiliate = new AffiliateController(); 
+$admin = new AdminController();
+
 
 
 $route = $_GET['route'] ?? '';
@@ -44,6 +47,9 @@ switch ($route) {
 
     case 'affiliateLogin':
         $affiliate->login();
+        break;
+         case 'adminLogin':
+        $admin->login();
         break;
 
     default:
