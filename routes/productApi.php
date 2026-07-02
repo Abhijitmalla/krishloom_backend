@@ -1,6 +1,8 @@
 <?php
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
+
+
+header("Access-Control-Allow-Origin: http://127.0.0.1:5500");
+header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
 header("Content-Type: application/json");
 
@@ -12,7 +14,7 @@ $route = $_GET['route'] ?? '';
 
 switch ($route) {
 
-    case 'addProduct':
+  case 'addProduct':
         $product->addProduct();
         break;
 
@@ -32,9 +34,17 @@ switch ($route) {
         $product->deleteProduct();
         break;
 
+        case 'updateGalleryImage':
+    $product->updateGalleryImage();
+    break;
+
+    case 'deleteGalleryImage':
+        $product->deleteGalleryImage();
+        break;
+
     default:
         echo json_encode([
-            "status" => false,
-            "message" => "Route not found"
+            'status' => false,
+            'message' => 'Invalid Route'
         ]);
 }
