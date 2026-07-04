@@ -29,15 +29,13 @@ class Cart
 
             $row = $result->fetch_assoc();
 
-            $newQty = $row['quantity'] + $quantity;
-
             $stmt = $this->conn->prepare("
                 UPDATE cart
                 SET quantity=?
                 WHERE id=?
             ");
 
-            $stmt->bind_param("ii", $newQty, $row['id']);
+            $stmt->bind_param("ii", $quantity, $row['id']);
 
             return $stmt->execute();
         }

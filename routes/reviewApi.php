@@ -25,9 +25,17 @@ switch ($route) {
         $controller->getReviews();
         break;
 
+    case 'getAllReviews':
+        $controller->getAllReviews();
+        break;
+
     case 'deleteReview':
         $controller->deleteReview();
         break;
+
+        case 'updateReviewStatus':
+    $controller->updateReviewStatus();
+    break;
 
     default:
         echo json_encode([
