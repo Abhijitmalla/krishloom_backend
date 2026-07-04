@@ -3,6 +3,8 @@
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../vendor/autoload.php';
 
+use Dompdf\Dompdf;
+use Dompdf\Options;
 use Endroid\QrCode\Builder\Builder;
 use Endroid\QrCode\Writer\PngWriter;
 
@@ -222,27 +224,31 @@ if (!is_dir($invoiceDir)) {
     mkdir($invoiceDir, 0777, true);
 }
 
-
 $fileName = $invoiceNumber . '.svg';
 $filePath = $invoiceDir . $fileName;
 
 $invoiceItems = $this->prepareInvoiceItems($data['items']);
-$this->createInvoiceImage(
-    $filePath,
-    [
-        'invoice_number' => $invoiceNumber,
-        'order_number' => $orderNo,
-        'qr_code' => $qrDbPath,
-        'order_date' => date('d M Y'),
-        'payment_method' => $data['payment_method'],
-        'subtotal' => $data['subtotal'],
-        'delivery_charge' => $data['delivery_charge'],
-        'discount' => $discount,
-        'total_amount' => $totalAmount,
-        'shipping' => $shipping,
-        'items' => $invoiceItems
-    ]
-);
+$invoiceData = [
+    'invoice_number' => $invoiceNumber,
+    'order_number' => $orderNo,
+    'qr_code' => $qrDbPath,
+    'order_date' => date('d M Y'),
+    'payment_method' => $data['payment_method'],
+    'subtotal' => $data['subtotal'],
+    'delivery_charge' => $data['delivery_charge'],
+    'discount' => $discount,
+    'total_amount' => $totalAmount,
+    'shipping' => $shipping,
+    'items' => $invoiceItems
+];
+
+$this->createInvoiceImage($filePath, $invoiceData);
+
+$pdfFile = $invoiceNumber . '.pdf';
+$pdfPath = $invoiceDir . $pdfFile;
+$pdfDbPath = 'uploads/invoices/' . $pdfFile;
+$this->createInvoicePdf($pdfPath, $invoiceData);
+
         $itemStmt = $this->conn->prepare("
             INSERT INTO order_items
             (
@@ -292,6 +298,7 @@ $update->execute();
     "order_id" => $orderId,
     "order_number" => $orderNo,
     "invoice_number" => $invoiceNumber,
+    "invoice_pdf" => $pdfDbPath,
     "qr_code" => $qrPath
 ];
     }
@@ -434,6 +441,120 @@ private function createInvoiceImage($filePath, $invoice)
     file_put_contents($filePath, implode("\n", $svg));
 }
 
+private function createInvoicePdf($filePath, $invoice)
+{
+    if (!class_exists(Dompdf::class)) {
+        return false;
+    }
+
+    try {
+        $options = new Options();
+        $options->set('isRemoteEnabled', true);
+        $options->set('defaultFont', 'DejaVu Sans');
+
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml($this->buildInvoiceHtml($invoice));
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+
+        file_put_contents($filePath, $dompdf->output());
+        return true;
+    } catch (Exception $e) {
+        return false;
+    }
+}
+
+private function buildInvoiceHtml($invoice)
+{
+    $qrUrl = !empty($invoice['qr_code'])
+        ? 'http://localhost/krishloom-vastram/backend/' . $invoice['qr_code']
+        : '';
+
+    $rows = '';
+    foreach ($invoice['items'] as $item) {
+        $rows .= '<tr>' .
+            '<td>' . $this->escapeHtml($item['title']) . '</td>' .
+            '<td style="text-align:center">' . (int) $item['quantity'] . '</td>' .
+            '<td style="text-align:right">' . $this->escapeHtml($this->money($item['price'])) . '</td>' .
+            '<td style="text-align:right">' . $this->escapeHtml($this->money($item['total'])) . '</td>' .
+            '</tr>';
+    }
+
+    $addressHtml = $this->escapeHtml($invoice['shipping']['address'] ?? '');
+    $cityStatePincode = trim(($invoice['shipping']['city'] ?? '') . ', ' . ($invoice['shipping']['state'] ?? '') . ' ' . ($invoice['shipping']['pincode'] ?? ''));
+    if ($cityStatePincode !== '') {
+        $addressHtml .= '<br>' . $this->escapeHtml($cityStatePincode);
+    }
+
+    return '<!DOCTYPE html><html><head><meta charset="utf-8"><style>' .
+        'body{font-family:DejaVu Sans, sans-serif;color:#1f2937;margin:0;padding:0}' .
+        '.container{max-width:800px;margin:0 auto;padding:30px}' .
+        '.brand{font-size:32px;font-weight:700;color:#581c87;margin:0}' .
+        '.muted{color:#6b7280;font-size:14px;margin:0}' .
+        '.title{font-size:28px;font-weight:700;margin:0}' .
+        '.section{margin-top:32px}' .
+        '.box{border:1px solid #e5e7eb;border-radius:10px;padding:18px;margin-bottom:18px}' .
+        '.box h2{margin:0 0 12px 0;font-size:16px;color:#111827}' .
+        'table{width:100%;border-collapse:collapse;margin-top:16px}' .
+        'th,td{padding:12px 10px;border:1px solid #e5e7eb;font-size:14px}' .
+        'th{text-align:left;background:#581c87;color:#fff}' .
+        '.text-right{text-align:right}' .
+        '.summary td{border:none;padding:6px 10px}' .
+        '.summary .label{text-align:right;padding-right:30px;color:#374151}' .
+        '.summary .value{text-align:right;font-weight:700}' .
+        '.footer{font-size:13px;color:#6b7280;margin-top:36px}' .
+        '</style></head><body>' .
+        '<div class="container">' .
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start">' .
+        '<div>' .
+        '<p class="brand">KRISHLOOM VASTRAM</p>' .
+        '<p class="muted">Handloom Sarees and Ethnic Wear</p>' .
+        '</div>' .
+        '<div style="text-align:right">' .
+        '<p class="title">INVOICE</p>' .
+        '<p class="muted">' . $this->escapeHtml($invoice['invoice_number']) . '</p>' .
+        '</div>' .
+        '</div>' .
+        '<div class="section" style="display:flex;gap:20px;flex-wrap:wrap">' .
+        '<div class="box" style="flex:1;min-width:250px">' .
+        '<h2>Bill To</h2>' .
+        '<p style="margin:0 0 6px 0;font-weight:700">' . $this->escapeHtml($invoice['shipping']['name'] ?? '') . '</p>' .
+        '<p style="margin:0 0 6px 0">' . $addressHtml . '</p>' .
+        '<p style="margin:0">Phone: ' . $this->escapeHtml($invoice['shipping']['phone'] ?? '') . '</p>' .
+        '</div>' .
+        '<div class="box" style="flex:1;min-width:250px">' .
+        '<h2>Order Details</h2>' .
+        '<p style="margin:0 0 6px 0">Order No: ' . $this->escapeHtml($invoice['order_number']) . '</p>' .
+        '<p style="margin:0 0 6px 0">Invoice Date: ' . $this->escapeHtml($invoice['order_date']) . '</p>' .
+        '<p style="margin:0 0 6px 0">Payment: ' . $this->escapeHtml($invoice['payment_method']) . '</p>' .
+        '<p style="margin:0">Status: Pending</p>' .
+        '</div>' .
+        '</div>' .
+        '<div class="section">' .
+        '<table>' .
+        '<thead><tr><th>Item</th><th style="text-align:center">Qty</th><th style="text-align:right">Price</th><th style="text-align:right">Total</th></tr></thead>' .
+        '<tbody>' . $rows . '</tbody>' .
+        '</table>' .
+        '</div>' .
+        '<div class="section" style="display:flex;justify-content:flex-end">' .
+        '<table class="summary" style="width:320px">' .
+        '<tr><td class="label">Subtotal</td><td class="value">' . $this->escapeHtml($this->money($invoice['subtotal'])) . '</td></tr>' .
+        '<tr><td class="label">Delivery</td><td class="value">' . $this->escapeHtml($this->money($invoice['delivery_charge'])) . '</td></tr>' .
+        '<tr><td class="label">Discount</td><td class="value">' . $this->escapeHtml($this->money(-1 * (float) $invoice['discount'])) . '</td></tr>' .
+        '<tr><td class="label" style="padding-top:12px;border-top:1px solid #e5e7eb">Grand Total</td><td class="value" style="padding-top:12px;border-top:1px solid #e5e7eb">' . $this->escapeHtml($this->money($invoice['total_amount'])) . '</td></tr>' .
+        '</table>' .
+        '</div>' .
+        (!empty($qrUrl) ? '<div class="section" style="text-align:center"><img src="' . $this->escapeHtml($qrUrl) . '" width="130" alt="QR Code"><p class="muted">Scan Order</p></div>' : '') .
+        '<p class="footer">Thank you for shopping with Krishloom Vastram. This is a computer generated invoice.</p>' .
+        '</div>' .
+        '</body></html>';
+}
+
+private function escapeHtml($value)
+{
+    return htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
 private function infoBlockSvg($x, $y, $title, $lines)
 {
     $svg = [];
@@ -476,6 +597,43 @@ private function money($amount)
 {
     return 'Rs. ' . number_format((float) $amount, 2);
 }
+    public function downloadInvoice($orderId)
+    {
+        $sql = "SELECT invoice_number FROM orders WHERE id = ? LIMIT 1";
+        $stmt = $this->conn->prepare($sql);
+        if (!$stmt) {
+            return false;
+        }
+
+        $stmt->bind_param("i", $orderId);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $order = $result->fetch_assoc();
+
+        if (!$order || empty($order['invoice_number'])) {
+            return false;
+        }
+
+        $pdfFile = __DIR__ . '/../uploads/invoices/' . $order['invoice_number'] . '.pdf';
+        if (!file_exists($pdfFile)) {
+            return false;
+        }
+
+        $download = $_GET['download'] ?? '0';
+        if (ob_get_level()) {
+            ob_end_clean();
+        }
+        header('Content-Type: application/pdf');
+        if ($download === '1') {
+            header('Content-Disposition: attachment; filename="' . basename($pdfFile) . '"');
+        } else {
+            header('Content-Disposition: inline; filename="' . basename($pdfFile) . '"');
+        }
+        header('Content-Length: ' . filesize($pdfFile));
+        readfile($pdfFile);
+        exit;
+    }
+
     // ===========================================
     // GET USER ORDERS
     // ===========================================

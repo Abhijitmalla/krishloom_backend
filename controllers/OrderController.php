@@ -36,6 +36,30 @@ public function placeOrder($data)
 
     echo json_encode($result);
 }
+
+    public function downloadInvoice()
+    {
+        $orderId = $_GET['order_id'] ?? null;
+
+        if (!$orderId) {
+            http_response_code(400);
+            echo json_encode([
+                'status' => false,
+                'message' => 'Order ID is required'
+            ]);
+            return;
+        }
+
+        $success = $this->order->downloadInvoice($orderId);
+
+        if ($success === false) {
+            http_response_code(404);
+            echo json_encode([
+                'status' => false,
+                'message' => 'Invoice not found'
+            ]);
+        }
+    }
     // ===============================
     // GET USER ORDERS
     // ===============================
