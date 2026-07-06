@@ -268,4 +268,20 @@ public function uploadProfileImage()
         "image" => $fileName
     ]);
 }
+
+    public function getAllUsers()
+    {
+        $users = $this->user->getAllUsers();
+        if ($users) {
+            echo json_encode([
+                "status" => true,
+                "data" => $users
+            ]);
+        } else {
+            echo json_encode([
+                "status" => false,
+                "message" => "No users found"
+            ]);
+        }
+    }
 }

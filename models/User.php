@@ -124,20 +124,34 @@ public function updateProfile($id, $dob, $gender, $address)
     return $stmt->execute();
 }
 
-public function updateProfileImage($id, $image)
-{
-    $stmt = $this->conn->prepare(
-        "UPDATE users
-         SET profile_image = ?
-         WHERE id = ?"
-    );
+    public function updateProfileImage($id, $image)
+    {
+        $stmt = $this->conn->prepare(
+            "UPDATE users
+             SET profile_image = ?
+             WHERE id = ?"
+        );
 
-    $stmt->bind_param(
-        "si",
-        $image,
-        $id
-    );
+        $stmt->bind_param(
+            "si",
+            $image,
+            $id
+        );
 
-    return $stmt->execute();
-}
+        return $stmt->execute();
+    }
+
+    public function getAllUsers()
+    {
+        $sql = "SELECT * FROM users ORDER BY created_at DESC";
+        $result = $this->conn->query($sql);
+        
+        $users = [];
+        if ($result && $result->num_rows > 0) {
+            while ($row = $result->fetch_assoc()) {
+                $users[] = $row;
+            }
+        }
+        return $users;
+    }
 }

@@ -1,9 +1,18 @@
 <?php
-header("Access-Control-Allow-Origin: *");
+if (isset($_SERVER['HTTP_ORIGIN'])) {
+    header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
+} else {
+    header("Access-Control-Allow-Origin: *");
+}
 header("Access-Control-Allow-Credentials: true");
 header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
 header("Content-Type: application/json");
+
+// Handle preflight OPTIONS request
+if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
+    exit(0);
+}
 
 require_once __DIR__ . '/../controllers/AuthController.php';
 require_once __DIR__ . '/../controllers/AffiliateController.php';
@@ -37,6 +46,10 @@ switch ($route) {
 
     case 'uploadProfileImage':
     $auth->uploadProfileImage();
+    break;
+
+    case 'getAllUsers':
+    $auth->getAllUsers();
     break;
 
          // Affiliate routes
