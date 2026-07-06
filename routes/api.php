@@ -1,5 +1,5 @@
 <?php
-header("Access-Control-Allow-Origin: http://127.0.0.1:5500");
+header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Credentials: true");
 header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
@@ -40,6 +40,14 @@ switch ($route) {
     break;
 
          // Affiliate routes
+    case 'getAllAffiliates':
+        $affiliate->getAllAffiliates();
+        break;
+
+    case 'adminLoginAsAffiliate':
+        $affiliate->adminLoginAsAffiliate();
+        break;
+
     case 'affiliateRegister':
         $affiliate->register();
         break;
@@ -49,8 +57,12 @@ switch ($route) {
     case 'affiliateLogin':
         $affiliate->login();
         break;
-         case 'adminLogin':
+        case 'adminLogin':
         $admin->login();
+        break;
+
+    case 'adminChangePassword':
+        $admin->changePassword();
         break;
 
     default:

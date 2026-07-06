@@ -13,6 +13,22 @@ class Affiliate
         $this->conn = $database->connect();
     }
 
+    // Get All Affiliates
+    public function getAll()
+    {
+        $query = "SELECT * FROM {$this->table} ORDER BY id DESC";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
+        $affiliates = [];
+        while ($row = $result->fetch_assoc()) {
+            $affiliates[] = $row;
+        }
+        
+        return $affiliates;
+    }
+
     // Register Affiliate
     public function register($data)
     {

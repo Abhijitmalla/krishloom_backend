@@ -122,4 +122,47 @@ class AffiliateController
             ]);
         }
     }
+
+    public function getAllAffiliates()
+    {
+        try {
+            $affiliates = $this->affiliate->getAll();
+            
+            echo json_encode([
+                "status" => true,
+                "data" => $affiliates
+            ]);
+        } catch (Exception $e) {
+            echo json_encode([
+                "status" => false,
+                "message" => $e->getMessage()
+            ]);
+        }
+    }
+
+    public function adminLoginAsAffiliate()
+    {
+        $data = json_decode(file_get_contents("php://input"), true);
+
+        if (empty($data['affiliate_id'])) {
+            echo json_encode(["status" => false, "message" => "Affiliate ID required."]);
+            return;
+        }
+
+        $user = $this->affiliate->findByLogin($data['affiliate_id']);
+
+        if ($user) {
+            unset($user['password']);
+            echo json_encode([
+                "status" => true,
+                "message" => "Login successful as affiliate.",
+                "user" => $user
+            ]);
+        } else {
+            echo json_encode([
+                "status" => false,
+                "message" => "Affiliate not found."
+            ]);
+        }
+    }
 }

@@ -24,4 +24,22 @@ class Admin
 
         return $result->fetch_assoc();
     }
+    
+    public function getById($id)
+    {
+        $query = "SELECT * FROM admins WHERE id = ?";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bind_param("i", $id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        return $result->fetch_assoc();
+    }
+    
+    public function updatePassword($id, $newPassword)
+    {
+        $query = "UPDATE admins SET password = ? WHERE id = ?";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bind_param("si", $newPassword, $id);
+        return $stmt->execute();
+    }
 }
