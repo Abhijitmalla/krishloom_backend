@@ -74,6 +74,38 @@ switch ($route) {
         $admin->login();
         break;
 
+ case 'sendAffiliateOTP':
+    $affiliate->sendOTP();
+    break;
+
+case 'verifyAffiliateOTP':
+    $affiliate->verifyOTP();
+    break;
+
+case 'submitAffiliateKYC':
+    $affiliate->submitKYC();
+    break;
+
+case 'getAffiliateProfile':
+    $affiliate->getAffiliateProfile();
+    break;
+
+case 'updateAffiliateProfile':
+    $affiliate->updateAffiliateProfile();
+    break;
+
+case 'uploadProfilePic':
+    $affiliate->uploadProfilePic();
+    break;
+
+case 'sendAadharOTP':
+    $affiliate->sendAadharOTP();
+    break;
+
+case 'verifyAadharOTP':
+    $affiliate->verifyAadharOTP();
+    break;
+
     case 'adminChangePassword':
         $admin->changePassword();
         break;
